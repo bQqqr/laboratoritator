@@ -1,0 +1,9 @@
+services:
+  stepca:
+    container_name: "stepca"
+    image: "smallstep/step-ca:0.18.1"
+    restart: "always"
+    ports:
+      - "8443:8443"
+    volumes:
+      - "./stepca:/home/step"

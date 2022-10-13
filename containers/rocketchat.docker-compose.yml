@@ -1,0 +1,96 @@
+services:
+  rocketchat-mongo:
+    container_name: rocketchat-mongo
+    image: mongo:4.0
+    restart: "always"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo rocketchat-mongo:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    command: mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1
+    volumes:
+      - "./rocketchat-mongo:/data/db"
+
+  rocketchat-mongo-init-replica:
+    image: mongo:4.0
+    container_name: rocketchat-mongo-init-replica
+    command: >
+      bash -c
+        "for i in `seq 1 30`; do
+          mongo rocketchat-mongo/rocketchat --eval \"
+            rs.initiate({
+              _id: 'rs0',
+              members: [ { _id: 0, host: 'localhost:27017' } ]})\" &&
+          s=$$? && break || s=$$?;
+          echo \"Tried $$i times. Waiting 5 secs...\";
+          sleep 5;
+        done; (exit $$s)"
+    depends_on:
+      - rocketchat-mongo
+
+  rocketchat:
+    container_name: rocketchat
+    image: rocket.chat:4.6.0
+    restart: unless-stopped
+    volumes:
+      - "./rocketchat/uploads:/app/uploads"
+      - "./certs:/app/certs"
+    environment:
+      PORT: 3000
+      ROOT_URL: https://rocketchat.moxthos.art
+      ROCKETCHAT_USER: admin
+      ROCKETCHAT_PASSWORD: password
+      MONGO_URL: mongodb://rocketchat-mongo:27017/rocketchat
+      MONGO_OPLOG_URL: mongodb://rocketchat-mongo:27017/local
+      NODE_EXTRA_CA_CERTS: /app/certs/root_ca.crt
+      Accounts_UseDNSDomainCheck: "false"
+    command: >
+      bash -c
+        "for i in `seq 1 30`; do
+          node main.js &&
+          s=$$? && break || s=$$?;
+          echo \"Tried $$i times. Waiting 5 secs...\";
+          sleep 5;
+        done; (exit $$s)"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rocketchat.rule=Host(`rocketchat.moxthos.art`)"
+      - "traefik.http.routers.rocketchat.entrypoints=web-secured"
+      - "traefik.http.routers.rocketchat.tls=true"
+      - "traefik.http.routers.rocketchat.service=rocketchat"
+      - "traefik.http.routers.rocketchat.middlewares=compresstraefik"
+      - "traefik.http.services.rocketchat.loadbalancer.server.port=3000"
+      - "traefik.http.services.rocketchat.loadbalancer.passhostheader=true"
+      - "traefik.http.middlewares.compresstraefik.compress=true"
+    healthcheck:
+      test: >
+        /usr/local/bin/node -e '
+        const http = require("http");
+        const options = {
+          host: "localhost",
+          port: 3000,
+          path: "/api/info",
+          timeout: 2000
+        };
+        const healthCheck = http.request(options, (res) => {
+          console.log(`HEALTHCHECK STATUS: $${res.statusCode}`);
+          if (res.statusCode == 200) {
+            process.exit(0);
+          } else {
+            process.exit(1);
+          }
+        });
+        healthCheck.on("error", function (err) {
+          console.error("ERROR");
+          process.exit(1);
+        });
+        healthCheck.end();'
+      interval: 2m
+      timeout: 20s
+      retries: 5
+      start_period: 3m
+    depends_on:
+      rocketchat-mongo:
+        condition: service_healthy

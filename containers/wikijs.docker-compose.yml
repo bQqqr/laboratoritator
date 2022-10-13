@@ -1,0 +1,41 @@
+services:
+  wikijs-postgres:
+    container_name: wikijs-postgres
+    image: postgres:14.2
+    restart: "always"
+    volumes:
+      - "./wikijs-postgres:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: wikijs
+      POSTGRES_USER: wikijs
+      POSTGRES_PASSWORD: password
+
+  # WikiJS: Open Source Wiki
+  wikijs:
+    container_name: wikijs
+    image: requarks/wiki:2.5
+    restart: unless-stopped
+    volumes:
+      - "./certs:/certs"
+    environment:
+      NODE_EXTRA_CA_CERTS: /certs/root_ca.crt
+      DB_TYPE: postgres
+      DB_HOST: wikijs-postgres
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: password
+      DB_NAME: wikijs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wikijs.rule=Host(`wikijs.moxthos.art`)"
+      - "traefik.http.routers.wikijs.entrypoints=web-secured"
+      - "traefik.http.routers.wikijs.tls=true"
+      - "traefik.http.routers.wikijs.service=wikijs"
+      - "traefik.http.services.wikijs.loadbalancer.server.port=3000"
+    depends_on:
+      - wikijs-postgres

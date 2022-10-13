@@ -1,0 +1,23 @@
+services:
+  gitea:
+    image: gitea/gitea:1.17.1
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - DOMAIN=gitea.moxthos.art
+      - ROOT_URL=https://gitea.moxthos.art
+    restart: always
+    volumes:
+      - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    expose:
+      - 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`gitea.moxthos.art`)"
+      - "traefik.http.routers.gitea.entrypoints=web-secured"
+      - "traefik.http.routers.gitea.tls=true"
+      - "traefik.http.routers.gitea.service=gitea"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"

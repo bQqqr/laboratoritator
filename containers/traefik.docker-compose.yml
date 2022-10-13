@@ -1,0 +1,35 @@
+services:
+  traefik:
+    container_name: "traefik"
+    image: "traefik:v2.6"
+    restart: "always"
+    command:
+      - "--api=true"
+      - "--api.insecure=false"
+      - "--api.dashboard=true"
+      - "--api.debug=true"
+      - "--log.level=DEBUG"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=true"
+      - "--providers.file.filename=/traefik/traefik-config.toml"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web-secured.address=:443"
+    environment:
+      - "LEGO_CA_CERTIFICATES=/certs/root_ca.crt"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./traefik:/traefik"
+      - "./certs:/certs"
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.http-catchall.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.moxthos.art`)"
+      - "traefik.http.routers.traefik.entrypoints=web-secured"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"

@@ -25,6 +25,7 @@ services:
       - "443:443"
     labels:
       - "traefik.enable=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.routers.http-catchall.rule=PathPrefix(`/`)"
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
@@ -32,4 +33,3 @@ services:
       - "traefik.http.routers.traefik.entrypoints=web-secured"
       - "traefik.http.routers.traefik.tls=true"
       - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"

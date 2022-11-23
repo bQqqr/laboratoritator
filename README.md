@@ -19,7 +19,7 @@
   </a>
 
   <h3 align="center">Laboratoritator</h3>
-
+ 
   <p align="center">
     🏭 How to setup your organization's internal services with a local CA. 
     <br />
@@ -67,11 +67,13 @@
 
 For various reasons, many development teams do not trust cloud providers and want to host their own in-house services. Laboratoriator is a series of docker-compose files and an instructional guide on how to setup your organization's services in a internal network.
 
-- https://traefik.moxthos.art
-- https://gitea.moxthos.art
-- https://wikijs.moxthos.art
-- https://nextcloud.moxthos.art
-- https://rocketchat.moxthos.art
+- [ctfd][ctfd-github-url]
+- [gitea][gitea-github-url]
+- [nextcloud][nextcloud-github-url]
+- [rocketchat][rocketchat-github-url]
+- [stepca][stepca-github-url]
+- [traefik][traefik-github-url]
+- [wikijs][wikijs-github-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -89,16 +91,17 @@ Install the following inside your host.
 
 ### Install Step CA
 
-Create the Step's directory and modify it, so docker can write in it.
+1. Create the StepCA's directory and modify it, so docker can write in it.
 
-```
+```sh
 $ cd $HOME
 $ mkdir stepca
 $ chown 1000:1000 stepca
 ```
-Then, initialize and configurate Step. Make sure that you save the password and the new CA's fingerprint.
 
-```
+2. Initialize and configurate StepCA. Make sure that you save your password and the new CA's fingerprint.
+
+```sh
 $ docker run -p 8443:8443 -it -v `pwd`/stepca:/home/step smallstep/step-ca:0.18.1 step ca init
 > Standalone
 > MoxthosCA
@@ -111,7 +114,7 @@ $ docker run -p 8443:8443 -it -v `pwd`/stepca:/home/step smallstep/step-ca:0.18.
 ...
 ```
 
-Copy laboratoritator's `containers/stepca.docker-compose.yml` to your host. Save your password inside the container and finally run it.
+3. Save your password inside the container and run the compose file.
 
 ```
 $ docker run -p 8443:8443 -it -v `pwd`/stepca:/home/step smallstep/step-ca:0.18.1 sh
@@ -120,7 +123,9 @@ $ docker run -p 8443:8443 -it -v `pwd`/stepca:/home/step smallstep/step-ca:0.18.
 $ docker compose -f stepca.docker-compose.yml up -d
 ```
 
-Do not forget to change the default max lifetime for TLS certificates. Open `~/stepca/config/ca.json` and configure `claims` inside the `authority` or the `provisioner` object. Then, restart the container to apply the changes.
+4. Do not forget to change the default max lifetime for TLS certificates. 
+  1. Open `~/stepca/config/ca.json` and configure `claims` inside the `authority` or the `provisioner` object. 
+  2. Restart the container to apply the changes.
 
 ```
 "claims": {
@@ -129,7 +134,7 @@ Do not forget to change the default max lifetime for TLS certificates. Open `~/s
 }
 ```
 
-Install the root certificate in your host using `step`.
+5. Install the root certificates in your host using `step`.
 
 ```
 $ step ca bootstrap --ca-url https://ca.moxthos.art:8443 --fingerprint ************ --install
@@ -137,27 +142,27 @@ $ step ca bootstrap --ca-url https://ca.moxthos.art:8443 --fingerprint *********
 
 ### Install Traefik
 
-Firstly, create `certs` and `traefik` directories. Also modify them so docker can write in them.
+1. Create `certs` and `traefik` directories and modify them, so docker can write in them.
 
-```
+```sh
 $ mkdir certs traefik
 $ chown 1000:1000 certs traefik
 ```
 
-Create a certificate/key for Traefik and save it inside `certs`.
+2. Create a certificate/key for Traefik and save it inside `certs`.
 
-```
+```sh
 $ step ca certificate --ca-url https://ca.moxthos.art:8443 traefik.moxthos.art certs/traefik.crt certs/traefik.key --not-after 2399h
 ```
 
-Copy the root certificate from Step's container to `./certs`.
+3. Copy the root certificate from StepCA's container to `certs`.
 
-```
+```sh
 $ docker cp stepca:/home/step/certs/root_ca.crt ./certs/
 $ chmod 644 ./certs/root_ca.crt
 ```
 
-Create a file named `traefik-config.toml` inside `~/traefik/`. Make sure that it contains the following:
+4. Create `traefik-config.toml` inside `traefik` and make sure that it contains the following:
 
 ```
 [[tls.certificates]]
@@ -165,7 +170,7 @@ Create a file named `traefik-config.toml` inside `~/traefik/`. Make sure that it
   keyFile = "/certs/traefik.key"
 ```
 
-Copy laboratoriator's `containers/traefik.docker-compose.yml` to your home directory. Run it.
+5. Run the compose file.
 
 ```
 $ docker compose -f traefik.docker-compose.yml up -d
@@ -173,88 +178,29 @@ $ docker compose -f traefik.docker-compose.yml up -d
 
 ### Install Gitea
 
-Create a certificate/key for Gitea and save it inside `certs`.
+1. Create a certificate/key for Gitea and save it inside `certs`.
 
-```
+```sh
 $ step ca certificate --ca-url https://ca.moxthos.art:8443 gitea.moxthos.art certs/gitea.crt certs/gitea.key --not-after 2399h
 ```
 
-Make sure that `~/traefik/traefik-config.toml` contains the following:
+2. Make sure that `traefik/traefik-config.toml` contains the following:
+
 ```
 [[tls.certificates]]
   certFile = "/certs/gitea.crt"
   keyFile = "/certs/gitea.key"
 ```
 
-Copy laboratoriator's `containers/gitea.docker-compose.yml` to your host's home directory and run it.
+Run the compose file.
 
 ```
 $ docker compose -f gitea.docker-compose.yml up -d
 ```
 
-### Install WikiJS
+### Install Others
 
-Create a certificate/key for WikiJS and save it inside `certs`.
-
-```
-$ step ca certificate --ca-url https://ca.moxthos.art:8443 wikijs.moxthos.art certs/wikijs.crt certs/wikijs.key --not-after 2399h
-```
-
-Make sure that `~/traefik/traefik-config.toml` contains the following:
-```
-[[tls.certificates]]
-  certFile = "/certs/wikijs.crt"
-  keyFile = "/certs/wikijs.key"
-```
-
-Copy laboratoriator's `containers/wikijs.docker-compose.yml` to your host's home directory and run it.
-```
-$ docker compose -f wikijs.docker-compose.yml up -d
-```
-
-### Install Nextcloud
-
-Create a certificate/key for Nextcloud and save it inside `certs`.
-
-```
-$ step ca certificate --ca-url https://ca.moxthos.art:8443 nextcloud.moxthos.art certs/nextcloud.crt certs/nextcloud.key --not-after 2399h
-```
-
-Make sure that `~/traefik/traefik-config.toml` contains the following:
-```
-[[tls.certificates]]
-  certFile = "/certs/nextcloud.crt"
-  keyFile = "/certs/nextcloud.key"
-```
-
-Copy laboratoriator's `containers/nextcloud.docker-compose.yml` to your host's home directory and run it.
-
-```
-$ docker compose -f nextcloud.docker-compose.yml up -d
-```
-
-### Install Rocketchat
-
-Create a certificate/key for Rocketchat and save it inside `certs`.
-
-```
-$ step ca certificate --ca-url https://ca.moxthos.art:8443 rocketchat.moxthos.art certs/rocketchat.crt certs/rocketchat.key --not-after 2399h
-```
-
-Make sure that `~/traefik/traefik-config.toml` contains the following:
-```
-[[tls.certificates]]
-  certFile = "/certs/rocketchat.crt"
-  keyFile = "/certs/rocketchat.key"
-```
-
-Copy laboratoriator's `containers/rocketchat.docker-compose.yml` to your host's home directory and run it.
-
-```
-$ docker compose -f rocketchat.docker-compose.yml up -d
-```
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+You can repeat the above process for all the other services.
 
 <!-- ROADMAP -->
 ## Roadmap
@@ -265,6 +211,8 @@ $ docker compose -f rocketchat.docker-compose.yml up -d
 - [x] WikiJS installation
 - [x] Nextcloud installation
 - [x] Rocketchat installation
+- [x] Ctfd installation
+- [ ] `.env` for docker compose
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -320,6 +268,13 @@ Project Link: [https://github.com/bQqqr/laboratoritator](https://github.com/bQqq
 [issues-url]: https://github.com/bQqqr/laboratoritator/issues
 [license-shield]: https://img.shields.io/github/license/bQqqr/laboratoritator.svg?style=for-the-badge
 [license-url]: https://github.com/bQqqr/laboratoritator/blob/master/LICENSE
+[ctfd-github-url]: https://github.com/CTFd/CTFd
+[gitea-github-url]: https://github.com/go-gitea/gitea
+[nextcloud-github-url]: https://github.com/nextcloud/server
+[rocketchat-github-url]: https://github.com/rocketchat
+[stepca-github-url]: https://github.com/smallstep/certificates
+[traefik-github-url]: https://github.com/traefik/traefik
+[wikijs-github-url]: https://github.com/requarks/wiki
 [docker-installation-url]: https://docs.docker.com/engine/install/debian/#install-using-the-repository 
 [docker-compose-installation-url]: https://docs.docker.com/compose/install/linux/#install-using-the-repository
 [lazydocker-installation-url]: https://github.com/jesseduffield/lazydocker#installation

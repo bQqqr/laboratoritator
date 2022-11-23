@@ -1,21 +1,24 @@
 # Dynamic configuration
+[[tls.certificates]]
+  certFile = "/certs/ctfd.crt"
+  keyFile = "/certs/ctfd.key"
 
 [[tls.certificates]]
-  certFile = "/certs/traefik.crt"
-  keyFile = "/certs/traefik.key"
+  certFile = "/certs/gitea.crt"
+  keyFile = "/certs/gitea.key"
 
 [[tls.certificates]]
-  certFile = "/certs/gitlab.crt"
-  keyFile = "/certs/gitlab.key"
+  certFile = "/certs/nextcloud.crt"
+  keyFile = "/certs/nextcloud.key"
 
 [[tls.certificates]]
   certFile = "/certs/rocketchat.crt"
   keyFile = "/certs/rocketchat.key"
 
 [[tls.certificates]]
-  certFile = "/certs/wikijs.crt"
-  keyFile = "/certs/wikijs.key"
+  certFile = "/certs/traefik.crt"
+  keyFile = "/certs/traefik.key"
 
 [[tls.certificates]]
-  certFile = "/certs/nextcloud.crt"
-  keyFile = "/certs/nextcloud.key"
+  certFile = "/certs/wikijs.crt"
+  keyFile = "/certs/wikijs.key"

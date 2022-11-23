@@ -1,0 +1,63 @@
+# $ git clone https://github.com/CTFd/CTFd
+ctfd:
+    container-name: ctfd
+    build: .
+    user: root
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=s3cr3ts3cr3ts3cr3ts3cr3ts3cr3ts3cr3t
+      - UPLOAD_FOLDER=/var/uploads
+      - DATABASE_URL=mysql+pymysql://ctfd:ctfd@ctfd-mariadb/ctfd
+      - REDIS_URL=redis://ctfd-redis:6379
+      - WORKERS=1
+      - LOG_FOLDER=/var/log/CTFd
+      - ACCESS_LOG=-
+      - ERROR_LOG=-
+      - REVERSE_PROXY=true
+    volumes:
+      - .data/CTFd/logs:/var/log/CTFd
+      - .data/CTFd/uploads:/var/uploads
+      - .:/opt/CTFd:ro
+    depends_on:
+      - traefik
+      - ctfd-mariadb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`ctfd.agora.cdd`)"
+      - "traefik.http.routers.whoami.entrypoints=websecured"
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+    networks:
+        default:
+        internal:
+
+ctfd-mariadb:
+  container-name: ctfd-mariadb
+  image: mariadb:10.4.12
+  restart: always
+  environment:
+    - MYSQL_ROOT_PASSWORD=ctfd
+    - MYSQL_USER=ctfd
+    - MYSQL_PASSWORD=ctfd
+    - MYSQL_DATABASE=ctfd
+  volumes:
+    - .data/mysql:/var/lib/mysql
+  networks:
+      internal:
+  # This command is required to set important mariadb defaults
+  command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
+
+ctfd-redis:
+  container-name: ctfd-redis
+  image: redis:4
+  restart: always
+  volumes:
+  - .data/redis:/data
+  networks:
+      internal:
+
+networks:
+    default:
+    internal:
+        internal: true

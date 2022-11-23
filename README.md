@@ -124,8 +124,8 @@ $ docker compose -f stepca.docker-compose.yml up -d
 ```
 
 4. Do not forget to change the default max lifetime for TLS certificates. 
-  1. Open `~/stepca/config/ca.json` and configure `claims` inside the `authority` or the `provisioner` object. 
-  2. Restart the container to apply the changes.
+  - Open `~/stepca/config/ca.json` and configure `claims` inside the `authority` or the `provisioner` object. 
+  - Restart the container to apply the changes.
 
 ```
 "claims": {
